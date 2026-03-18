@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radio Coco - Interface V2</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #00f3ff; /* Cyan électrique */
+            --secondary-color: #bc13fe; /* Néon Violet */
+            --alert-color: #ff2a6d; /* Rouge alerte */
+            --bg-dark: #050505;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            height: 100vh;
+            background-color: var(--bg-dark);
+            font-family: 'Share Tech Mono', monospace;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+        }
+
+        /* --- BACKGROUND VIDEO & OVERLAY --- */
+        #bg-video {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            z-index: -2;
+            filter: brightness(0.3) contrast(1.2) hue-rotate(-10deg);
+        }
+
+        /* Grille futuriste par-dessus la vidéo */
+        .grid-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            background: 
+                linear-gradient(transparent 0%, rgba(0, 255, 255, 0.05) 2%, transparent 3%),
+                linear-gradient(90deg, transparent 0%, rgba(0, 255, 255, 0.05) 2%, transparent 3%);
+            background-size: 50px 50px;
+            pointer-events: none;
+        }
+
+        /* --- MAIN CONTAINER (CIRCULAR HUD) --- */
+        .hud-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Cercles tournants décoratifs */
+        .orbit-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid rgba(0, 243, 255, 0.3);
+        }
+
+        .ring-1 { width: 100%; height: 100%; border-style: dashed; animation: spin 20s linear infinite; }
+        .ring-2 { width: 85%; height: 85%; border: 2px solid rgba(188, 19, 254, 0.2); border-top-color: var(--secondary-color); animation: spin-reverse 15s linear infinite; }
+        .ring-3 { width: 70%; height: 70%; border-left-color: var(--primary-color); border-right-color: transparent; border-width: 1px; animation: spin 10s linear infinite; }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes spin-reverse { 100% { transform: rotate(-360deg); } }
+
+        /* --- CORE PLAYER --- */
+        .core-player {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle at center, rgba(20, 30, 40, 0.9) 0%, rgba(5, 5, 5, 0.95) 100%);
+            border: 1px solid rgba(0, 243, 255, 0.5);
+            box-shadow: 
+                0 0 50px rgba(0, 243, 255, 0.1),
+                inset 0 0 30px rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            backdrop-filter: blur(5px);
+        }
+
+        /* Scan Line Effect */
+        .core-player::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: rgba(0, 243, 255, 0.5);
+            box-shadow: 0 0 10px var(--primary-color);
+            animation: scan-line 3s ease-in-out infinite;
+            opacity: 0.5;
+        }
+
+        @keyframes scan-line {
+            0% { top: 0%; opacity: 0; }
+            50% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        /* --- TEXT & GLITCH --- */
+        .station-id {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            letter-spacing: 5px;
+            margin-bottom: 5px;
+            color: #fff;
+            text-shadow: 2px 2px 0px var(--secondary-color);
+            animation: glitch-text 4s infinite;
+        }
+
+        @keyframes glitch-text {
+            0%, 90%, 100% { transform: translate(0); text-shadow: 2px 2px 0px var(--secondary-color); }
+            92% { transform: translate(-2px, 1px); text-shadow: 2px -2px 0px var(--primary-color); }
+            94% { transform: translate(2px, -1px); text-shadow: -2px 2px 0px var(--alert-color); }
+        }
+
+        .sub-id {
+            font-size: 0.7rem;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+
+        /* --- VISUALIZER (CIRCULAR) --- */
+        .circular-visualizer {
+            width: 180px;
+            height: 180px;
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            opacity: 0.8;
+            pointer-events: none;
+        }
+
+        .bar-c {
+            width: 3px;
+            height: 20px;
+            background: var(--primary-color);
+            border-radius: 2px;
+            box-shadow: 0 0 5px var(--primary-color);
+            animation: bar-dance 1.2s ease-in-out infinite;
+        }
+        
+        /* Generate visualizer bars via JS or CSS simple pattern */
+        .bar-c:nth-child(odd) { animation-delay: 0.4s; background: var(--secondary-color); box-shadow: 0 0 5px var(--secondary-color); }
+        .bar-c:nth-child(3n) { animation-delay: 0.2s; }
+
+        .paused-anim .bar-c {
+            animation: none;
+            height: 5px;
+            opacity: 0.2;
+        }
+
+        @keyframes bar-dance {
+            0%, 100% { height: 10px; transform: scaleY(1); }
+            50% { height: 40px; transform: scaleY(1.5); }
+        }
+
+        /* --- PLAY BUTTON (REACTOR CORE) --- */
+        .play-btn-container {
+            margin-top: 130px;
+            z-index: 10;
+        }
+
+        .play-btn {
+            width: 60px;
+            height: 60px;
+            background: transparent;
+            border: 2px solid var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+        }
+
+        .play-btn:hover {
+            background: rgba(0, 243, 255, 0.1);
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.6);
+            transform: scale(1.1);
+        }
+
+        /* Icône Play */
+        .play-btn::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 55%;
+            transform: translate(-50%, -50%);
+            border-style: solid;
+            border-width: 10px 0 10px 18px;
+            border-color: transparent transparent transparent var(--primary-color);
+            transition: all 0.2s;
+        }
+
+        /* État Pause */
+        .play-btn.active {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 30px rgba(188, 19, 254, 0.6);
+        }
+
+        .play-btn.active::after {
+            border-width: 0;
+            width: 15px;
+            height: 20px;
+            border-left: 5px solid var(--secondary-color);
+            border-right: 5px solid var(--secondary-color);
+            border-color: transparent;
+            background: transparent;
+            left: 50%;
+        }
+
+        /* --- DATA READOUTS --- */
+        .data-readout {
+            position: absolute;
+            bottom: 50px;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .data-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .data-value {
+            color: var(--primary-color);
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        /* --- VOLUME SLIDER (LINEAR HUD) --- */
+        .volume-hud {
+            position: absolute;
+            bottom: -40px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .volume-track {
+            width: 150px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            position: relative;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 150px;
+            height: 4px;
+            background: transparent;
+            cursor: pointer;
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 2;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 8px;
+            height: 8px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--primary-color);
+            cursor: pointer;
+        }
+
+        /* Filled part effect */
+        .volume-fill {
+            height: 100%;
+            background: var(--primary-color);
+            width: 70%; /* Match default volume */
+            pointer-events: none;
+            box-shadow: 0 0 10px var(--primary-color);
+        }
+
+        .ico { color: var(--primary-color); font-size: 1.2rem; }
+
+        /* --- CORNER DECORATIONS --- */
+        .corner-deco {
+            position: fixed;
+            width: 100px;
+            height: 100px;
+            border: 2px solid rgba(0, 243, 255, 0.2);
+            pointer-events: none;
+        }
+        .top-left { top: 20px; left: 20px; border-right: 0; border-bottom: 0; }
+        .top-right { top: 20px; right: 20px; border-left: 0; border-bottom: 0; }
+        .bottom-left { bottom: 20px; left: 20px; border-right: 0; border-top: 0; }
+        .bottom-right { bottom: 20px; right: 20px; border-left: 0; border-top: 0; }
+
+    </style>
+</head>
+<body>
+
+    <video autoplay muted loop playsinline id="bg-video">
+        <source src="https://radiococo.re/wp-content/uploads/2025/03/video-header-radiococo.mp4" type="video/mp4">
+    </video>
+    <div class="grid-overlay"></div>
+
+    <audio id="radio-stream" preload="none">
+        <source src="https://listen.radioking.com/radio/715211/stream/784739" type="audio/mpeg">
+    </audio>
+
+    <!-- Déco coins écran -->
+    <div class="corner-deco top-left"></div>
+    <div class="corner-deco top-right"></div>
+    <div class="corner-deco bottom-left"></div>
+    <div class="corner-deco bottom-right"></div>
+
+    <div class="hud-container" id="visualizer-container">
+        <!-- Anneaux rotatifs -->
+        <div class="orbit-ring ring-1"></div>
+        <div class="orbit-ring ring-2"></div>
+        <div class="orbit-ring ring-3"></div>
+
+        <!-- Cœur du lecteur -->
+        <div class="core-player">
+            <div class="station-id">RADIO COCO</div>
+            <div class="sub-id" id="status-text">SYS.OFFLINE</div>
+
+            <!-- Visualiseur -->
+            <div class="circular-visualizer" id="viz-bars">
+                <!-- Génération des barres en JS pour la simplicité -->
+            </div>
+
+            <div class="play-btn-container">
+                <button class="play-btn" id="play-pause"></button>
+            </div>
+
+            <!-- Faux indicateurs -->
+            <div class="data-readout">
+                <div class="data-block">
+                    <span class="data-value" id="bitrate">128</span>
+                    <span>KBS</span>
+                </div>
+                <div class="data-block">
+                    <span class="data-value" id="freq">98.2</span>
+                    <span>FM/V</span>
+                </div>
+                <div class="data-block">
+                    <span class="data-value" id="latency">12</span>
+                    <span>MS</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Volume -->
+        <div class="volume-hud">
+            <span class="ico">−</span>
+            <div class="volume-track">
+                <input type="range" id="volume-control" min="0" max="1" step="0.01" value="0.7">
+                <div class="volume-fill" id="vol-fill"></div>
+            </div>
+            <span class="ico">+</span>
+        </div>
+    </div>
+
+    <script>
+        // --- Audio Setup ---
+        const audio = document.getElementById('radio-stream');
+        const playBtn = document.getElementById('play-pause');
+        const statusText = document.getElementById('status-text');
+        const vizBars = document.getElementById('viz-bars');
+        const volFill = document.getElementById('vol-fill');
+        const volumeControl = document.getElementById('volume-control');
+        const visualizerContainer = document.getElementById('visualizer-container');
+
+        // --- Generate Visualizer Bars ---
+        for(let i=0; i<20; i++) {
+            let bar = document.createElement('div');
+            bar.className = 'bar-c';
+            vizBars.appendChild(bar);
+        }
+
+        // --- Play Logic ---
+        playBtn.addEventListener('click', () => {
+            if (audio.paused) {
+                audio.play();
+                playBtn.classList.add('active');
+                statusText.textContent = "SYS.ONLINE";
+                vizBars.classList.remove('paused-anim');
+                startDataSimulation(); // Start fake data
+            } else {
+                audio.pause();
+                playBtn.classList.remove('active');
+                statusText.textContent = "SYS.PAUSED";
+                vizBars.classList.add('paused-anim');
+                stopDataSimulation(); // Stop fake data
+            }
+        });
+
+        // --- Volume Logic ---
+        volumeControl.addEventListener('input', (e) => {
+            audio.volume = e.target.value;
+            volFill.style.width = (e.target.value * 100) + '%';
+        });
+
+        // --- Fake Data Simulation (for aesthetics) ---
+        let dataInterval;
+        const bitrateEl = document.getElementById('bitrate');
+        const latencyEl = document.getElementById('latency');
+
+        function startDataSimulation() {
+            dataInterval = setInterval(() => {
+                // Simulate slight bitrate fluctuation
+                bitrateEl.textContent = Math.floor(126 + Math.random() * 4);
+                // Simulate latency
+                latencyEl.textContent = Math.floor(10 + Math.random() * 20);
+            }, 1000);
+        }
+
+        function stopDataSimulation() {
+            clearInterval(dataInterval);
+        }
+
+        // Initial state for visualizer (paused)
+        vizBars.classList.add('paused-anim');
+        volFill.style.width = '70%';
+
+    </script>
+</body>
+</html>
